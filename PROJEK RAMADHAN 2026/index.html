@@ -1,3 +1,23 @@
+<?php 
+include 'config.php'; 
+
+// Set zona waktu agar akurat dengan lokasi warung
+date_default_timezone_set('Asia/Makassar'); 
+
+// 1. Ambil data settings dengan pengaman (Default Value)
+$query_set = mysqli_query($conn, "SELECT * FROM settings WHERE id=1");
+$s = mysqli_fetch_assoc($query_set);
+
+// Jika database kosong, gunakan nilai default agar tampilan tidak hancur
+$jam_buka = $s['jam_buka'] ?? '07:00:00';
+$jam_tutup = $s['jam_tutup'] ?? '15:00:00';
+$pesan_hero = $s['pesan_status'] ?? 'Cita rasa Nasi Kuning tradisional asli Maumbawa oleh Ibu Nurmin Sumba.';
+
+// 2. Logika Buka/Tutup
+$jam_sekarang = date('H:i:s');
+$is_buka = ($jam_sekarang >= $jam_buka && $jam_sekarang < $jam_tutup);
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -24,48 +44,76 @@
         <section id="beranda" class="hero">
             <div class="hero-content">
                 <h1>Warung Bismillah</h1>
-                <div id="status-warung" class="status-badge">MEMERIKSA STATUS...</div>
-                <p>Cita rasa Nasi Kuning tradisional asli Maumbawa oleh Ibu Nurmin Sumba.</p>
+                <div class="status-badge <?php echo $is_buka ? 'buka' : 'tutup'; ?>">
+                    <?php echo $is_buka ? '🟢 WARUNG SEDANG BUKA' : '🔴 WARUNG SUDAH TUTUP'; ?>
+                </div>
+                <p><?php echo $pesan_hero; ?></p>
             </div>
         </section>
 
         <section id="menu" class="container">
-            <h2 class="section-title">Menu Spesial Hari Ini</h2>
-            <div class="menu-grid">
-                <div class="menu-card">
-                    <div class="menu-img">
-                        <img src="Nasi kunir dengan ikan sambal.png" alt="Nasi Kuning">
-                        <span class="tag-tersedia">Tersedia</span>
-                    </div>
-                    <div class="menu-info">
-                        <h3>Nasi Kuning Ikan</h3>
-                        <p>Nasi kuning gurih dengan lauk ikan bumbu merah khas Maumbawa dan serundeng.</p>
-                    </div>
+    <h2 class="section-title">Menu Spesial Hari Ini</h2>
+    <div class="menu-grid">
+        <?php
+        $query_menu = mysqli_query($conn, "SELECT * FROM menu");
+        
+        // JIKA DATABASE ADA ISINYA, TAMPILKAN DARI DATABASE
+        if ($query_menu && mysqli_num_rows($query_menu) > 0) {
+            while($row = mysqli_fetch_assoc($query_menu)):
+        ?>
+            <div class="menu-card <?php echo $row['is_tersedia'] ? '' : 'habis'; ?>">
+                <div class="menu-img">
+                    <img src="<?php echo $row['gambar']; ?>" alt="<?php echo $row['nama']; ?>">
+                    <span class="<?php echo $row['is_tersedia'] ? 'tag-tersedia' : 'tag-habis'; ?>">
+                        <?php echo $row['is_tersedia'] ? 'Tersedia' : 'Habis'; ?>
+                    </span>
                 </div>
-
-                <div class="menu-card">
-                    <div class="menu-img">
-                        <img src="Nasi kuning lengkap dengan sambal.png" alt="Nasi Kuning Telur">
-                        <span class="tag-tersedia">Tersedia</span>
-                    </div>
-                    <div class="menu-info">
-                        <h3>Nasi Kuning Telur</h3>
-                        <p>Porsi lengkap dengan telur balado pedas manis yang menggugah selera.</p>
-                    </div>
-                </div>
-
-                <div class="menu-card habis">
-                    <div class="menu-img">
-                        <img src="Keranjang penuh rempeyek kacang renyah.png" alt="Rempeyek">
-                        <span class="tag-habis">Habis</span>
-                    </div>
-                    <div class="menu-info">
-                        <h3>Rempeyek Kacang</h3>
-                        <p>Camilan renyah dengan kacang pilihan. Sangat cocok jadi teman nasi.</p>
-                    </div>
+                <div class="menu-info">
+                    <h3><?php echo $row['nama']; ?></h3>
+                    <p><?php echo $row['deskripsi']; ?></p>
                 </div>
             </div>
-        </section>
+        <?php 
+            endwhile; 
+        } else { 
+            // JIKA DATABASE KOSONG, TAMPILKAN MENU ASLI (FALLBACK)
+            // Ini agar tampilan tidak hancur saat kamu pertama kali install
+        ?>
+            <div class="menu-card">
+                <div class="menu-img">
+                    <img src="Nasi kunir dengan ikan sambal.png" alt="Nasi Kuning">
+                    <span class="tag-tersedia">Tersedia</span>
+                </div>
+                <div class="menu-info">
+                    <h3>Nasi Kuning Ikan</h3>
+                    <p>Nasi kuning gurih dengan lauk ikan bumbu merah khas Maumbawa dan serundeng.</p>
+                </div>
+            </div>
+
+            <div class="menu-card">
+                <div class="menu-img">
+                    <img src="Nasi kuning lengkap dengan sambal.png" alt="Nasi Kuning Telur">
+                    <span class="tag-tersedia">Tersedia</span>
+                </div>
+                <div class="menu-info">
+                    <h3>Nasi Kuning Telur</h3>
+                    <p>Porsi lengkap dengan telur balado pedas manis yang menggugah selera.</p>
+                </div>
+            </div>
+
+            <div class="menu-card habis">
+                <div class="menu-img">
+                    <img src="Keranjang penuh rempeyek kacang renyah.png" alt="Rempeyek">
+                    <span class="tag-habis">Habis</span>
+                </div>
+                <div class="menu-info">
+                    <h3>Rempeyek Kacang</h3>
+                    <p>Camilan renyah dengan kacang pilihan. Sangat cocok jadi teman nasi.</p>
+                </div>
+            </div>
+        <?php } ?>
+    </div>
+</section>
 
         <section id="tentang" class="bg-light">
             <div class="container">
@@ -73,9 +121,7 @@
                 <div class="about-wrapper">
                     <div class="about-text">
                         <h3>Kisah Warung Bismillah</h3>
-                        <p>Didirikan oleh <strong>Ibu Nurmin Sumba</strong>, Warung Bismillah bermula dari semangat untuk menyajikan sarapan khas yang otentik bagi masyarakat Maumbawa. Perjalanan kami dimulai pada tahun 2014 sebagai usaha kecil rumahan.</p>
-                        <p>Berkat kepercayaan pelanggan, pada tahun 2019 kami resmi menempati bangunan warung permanen. Kami percaya bahwa nasi kuning bukan sekadar makanan, tapi adalah warisan rasa yang menyatukan kebersamaan di pagi hari.</p>
-                        
+                        <p>Didirikan oleh <strong>Ibu Nurmin Sumba</strong>, Warung Bismillah bermula dari semangat untuk menyajikan sarapan khas yang otentik...</p>
                         <div class="keunggulan">
                             <h4>Mengapa Memilih Kami?</h4>
                             <ul>
@@ -86,14 +132,8 @@
                         </div>
                     </div>
                     <div class="about-stats">
-                        <div class="stat-item">
-                            <span>10+</span>
-                            <p>Tahun Pengalaman</p>
-                        </div>
-                        <div class="stat-item">
-                            <span>100%</span>
-                            <p>Bahan Halal</p>
-                        </div>
+                        <div class="stat-item"><span>10+</span><p>Tahun Pengalaman</p></div>
+                        <div class="stat-item"><span>100%</span><p>Bahan Halal</p></div>
                     </div>
                 </div>
             </div>
@@ -102,38 +142,14 @@
         <section id="kontak" class="container">
             <h2 class="section-title">Lokasi & Kontak</h2>
             <div class="contact-wrapper">
-                <div class="contact-card">
-                    <div class="icon-circle">📍</div>
-                    <h3>Alamat Warung</h3>
-                    <p>Maumbawa, Desa Kezewea</p>
-                    <p>Kecamatan Golewa Selatan</p>
-                    <p>Kabupaten Ngada, NTT</p>
-                    
-                </div>
-
-                <div class="contact-card">
-                    <div class="icon-circle">⏰</div>
-                    <h3>Jam Operasional</h3>
-                    <p>Senin - Minggu</p>
-                    <p class="highlight-text">07.00 WITA - Selesai</p>
-                    <small>(Disarankan datang sebelum jam 10 pagi)</small>
-                </div>
-
-                <div class="contact-card">
-                    <div class="icon-circle">📞</div>
-                    <h3>Hubungi Kami</h3>
-                    <p>Tanya Stok / Pesanan Jumlah Banyak:</p>
-                    <p class="phone-number">Melalui WhatsApp 082145381396</p>
-                    <p>Atau Kunjungi Langsung Lokasi Kami</p>
-                </div>
+                <div class="contact-card"><div class="icon-circle">📍</div><h3>Alamat</h3><p>Maumbawa, Desa Kezewea, NTT</p></div>
+                <div class="contact-card"><div class="icon-circle">⏰</div><h3>Jam Operasional</h3><p class="highlight-text"><?php echo date('H:i', strtotime($jam_buka)); ?> - Selesai</p></div>
+                <div class="contact-card"><div class="icon-circle">📞</div><h3>WhatsApp</h3><p class="phone-number">082145381396</p></div>
             </div>
         </section>
     </main>
 
-    <footer>
-        <p>&copy; 2026 Warung Bismillah </p>
-    </footer>
-
+    <footer><p>&copy; 2026 Warung Bismillah</p></footer>
     <script src="script.js"></script>
 </body>
 </html>
